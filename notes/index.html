@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>notes — fefê villaça</title>
+<meta name="description" content="Notes by Fernanda Villaça.">
+<link rel="stylesheet" href="estilo.css?v=1790970561">
+</head>
+<body>
+
+<a class="voltar" href="/" aria-label="voltar para a capa">← back</a>
+
+<main class="notas" data-aberta="nao">
+  <nav class="lista" aria-label="notes">
+    <h1>notes</h1>
+    <input class="busca" type="search" placeholder="search" aria-label="search notes">
+    <ul></ul>
+    <p class="contagem"></p>
+  </nav>
+
+  <article class="nota" aria-live="polite">
+    <button class="fechar" type="button">‹ notes</button>
+    <time></time>
+    <h2></h2>
+    <div class="corpo"></div>
+  </article>
+</main>
+
+<script src="notas.js?v=1790970561"></script>
+<script>
+// Lista à esquerda, nota à direita, como o app de notas do iPhone.
+// A nota aberta mora no hash (/notes#id): dá pra mandar link de uma nota só,
+// e o voltar do navegador fecha a nota no celular.
+
+// o endereço sai do título: "coisas de gente corajosa" → #coisas-de-gente-corajosa
+const slug = t => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+// com data, da mais nova pra mais velha; sem data, a ordem do arquivo
+const notas = window.NOTAS
+  .map((n, i) => ({ ...n, id: n.id || slug(n.titulo), ordem: i }))
+  .sort((a, b) => (b.data || "").localeCompare(a.data || "") || a.ordem - b.ordem);
+const main = document.querySelector(".notas");
+const ul = document.querySelector(".lista ul");
+const busca = document.querySelector(".busca");
+const contagem = document.querySelector(".contagem");
+const artigo = document.querySelector(".nota");
+
+const celular = matchMedia("(max-width: 760px)");
+
+// data ISO lida como local, senão o fuso joga pro dia anterior
+const quando = iso => new Date(iso + "T12:00:00");
+const longa = iso => quando(iso).toLocaleDateString("en-US",
+  { day: "numeric", month: "long", year: "numeric" });
+const curta = iso => quando(iso).toLocaleDateString("en-US",
+  { day: "numeric", month: "numeric", year: "2-digit" });
+
+function montarLista() {
+  const termo = busca.value.trim().toLowerCase();
+  const visiveis = notas.filter(n => !termo ||
+    (n.titulo + " " + n.itens.join(" ")).toLowerCase().includes(termo));
+
+  ul.replaceChildren(...visiveis.map(n => {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = "#" + n.id;
+    a.dataset.id = n.id;
+    a.innerHTML = `<strong></strong><span><time></time> <em></em></span>`;
+    a.querySelector("strong").textContent = n.titulo;
+    a.querySelector("time").textContent = n.data ? curta(n.data) : "";
+    a.querySelector("em").textContent = n.itens[0] || "";
+    li.append(a);
+    return li;
+  }));
+
+  contagem.textContent = visiveis.length === 1 ? "1 note" : `${visiveis.length} notes`;
+  marcar();
+}
+
+function idAtual() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (notas.some(n => n.id === id)) return id;
+  // no computador sempre tem uma nota aberta; no celular, a lista primeiro
+  return celular.matches ? null : notas[0]?.id;
+}
+
+function marcar() {
+  const id = idAtual();
+  ul.querySelectorAll("a").forEach(a =>
+    a.toggleAttribute("aria-current", a.dataset.id === id));
+}
+
+function abrir() {
+  const id = idAtual();
+  const n = notas.find(n => n.id === id);
+  main.dataset.aberta = n && location.hash ? "sim" : "nao";
+  marcar();
+  if (!n) { document.title = "notes — fefê villaça"; return; }
+
+  const tempo = artigo.querySelector("time");
+  tempo.dateTime = n.data || "";
+  tempo.textContent = n.data ? longa(n.data) : "";
+  artigo.querySelector("h2").textContent = n.titulo;
+  artigo.querySelector(".corpo").replaceChildren(...n.itens.map(t => {
+    const p = document.createElement("p");
+    p.textContent = t;
+    return p;
+  }));
+  artigo.scrollTop = 0;
+  document.title = `${n.titulo} — notes — fefê villaça`;
+}
+
+// no celular o "‹ notes" é um voltar de verdade, pra não empilhar histórico
+artigo.querySelector(".fechar").addEventListener("click", () => {
+  if (history.length > 1 && location.hash) history.back();
+  else { history.replaceState(null, "", location.pathname); abrir(); }
+});
+
+busca.addEventListener("input", montarLista);
+addEventListener("hashchange", abrir);
+celular.addEventListener("change", abrir);
+
+montarLista();
+abrir();
+</script>
+
+</body>
+</html>

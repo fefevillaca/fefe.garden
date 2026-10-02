@@ -1,0 +1,218 @@
+/* capa — protótipo dos planetoides em órbita
+ *
+ * Tipografia e cor aqui são PLACEHOLDER deliberado, pelo princípio do
+ * `site.md`: o site é construído contra tokens, o branding entra depois
+ * trocando o arquivo. Nada aqui é escolha de marca — é o cinza mais neutro
+ * que deixa a peça falar.
+ */
+
+:root {
+  /* o tom da peça em foco. o JS reescreve; o valor abaixo é só o primeiro
+     quadro, antes de o rAF rodar */
+  --tom: #f6f2ea;
+
+  --creme:  #efece4;   /* o fundo do estúdio de onde as peças saíram */
+  --borda:  #ded9cd;   /* a vinheta: o mesmo creme, um passo mais fundo */
+  --tinta:  #211f1c;
+  --ar:     22, 20, 16;  /* a cor da sombra de ar, em rgb cru */
+  --ar-op:  0.13;
+
+  --fonte-titulo: Georgia, 'Times New Roman', serif;
+  --fonte-corpo: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 3vh, 32px);
+  color: var(--tinta);
+  font-family: var(--fonte-corpo);
+  overflow: hidden;
+  /* a transição é longa de propósito: em 900ms o fundo acompanha sem que
+     ninguém veja a cor mudar. em 300ms lê como piscada */
+  transition: background-color .9s ease, color .9s ease;
+}
+
+/* ─── o fundo: vinheta + tom ───────────────────────────────────────────── */
+
+/* a luz cai no centro e some nas bordas, que é a mesma luz do estúdio onde as
+   peças foram fotografadas; e o clarão central puxa a cor de quem está em foco.
+   (chapado, escuro e nu foram testados no protótipo e descartados em 02/10/2026) */
+body {
+  background:
+    radial-gradient(ellipse 130% 100% at 50% 46%,
+      var(--tom) 0%, var(--creme) 42%, var(--borda) 100%);
+}
+
+/* ─── a apresentação ────────────────────────────────────────────────────── */
+
+.apresentacao { text-align: center; padding: 0 24px; max-width: 60ch; }
+
+.oi {
+  font-family: var(--fonte-titulo);
+  font-size: clamp(22px, 3.4vw, 34px);
+  font-weight: 400;
+  margin: 0;
+  letter-spacing: -.01em;
+}
+.oi strong { font-weight: 600; }
+
+.sub {
+  margin: .5em 0 0;
+  font-size: clamp(12px, 1.3vw, 14px);
+  line-height: 1.5;
+  opacity: .58;
+}
+
+/* ─── o campo e a órbita ────────────────────────────────────────────────── */
+
+.campo {
+  width: 100%;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  touch-action: pan-y;
+  cursor: grab;
+}
+.campo.arrastando { cursor: grabbing; }
+
+.orbita {
+  position: relative;
+  width: min(1100px, 100vw);
+  /* a altura tem que caber a subida da elipse (que vale quase meia peça pra
+     cada lado) MAIS a peça da frente MAIS o rótulo dela. Apertar aqui faz o
+     rótulo colidir com a linha de dica */
+  height: clamp(340px, 60vh, 580px);
+  /* o diâmetro do planetoide em foco. tudo o mais deriva daqui */
+  --base: clamp(130px, 22vh, 260px);
+}
+
+.planetoide {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: var(--base);
+  height: var(--base);
+  margin: calc(var(--base) / -2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  will-change: transform;
+  /* sem transição aqui: quem move é o rAF, quadro a quadro */
+}
+
+.planetoide:focus { outline: none; }
+.planetoide:focus-visible .corpo {
+  outline: 2px solid currentColor;
+  outline-offset: 12px;
+  border-radius: 50%;
+}
+
+.corpo {
+  position: absolute;
+  inset: 0;
+  transform: scale(var(--s));
+  filter: blur(calc((1 - var(--d)) * 3.4px));
+  opacity: calc(.38 + .62 * var(--d));
+  will-change: transform, filter;
+}
+
+.corpo img {
+  position: absolute;
+  display: block;
+  /* a imagem é posicionada pelo JS a partir da caixa medida no preparar.py:
+     cada bola sai do gerador num tamanho e num lugar diferentes dentro do
+     quadro, e ancorar pelo arquivo poria cada uma numa órbita torta */
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* a sombra de AR, não de chão.
+ *
+ * A lei 4 dos planetoides manda a peça sair sem sombra projetada, e é o que
+ * a faz flutuar. Uma sombra de contato aqui embaixo pousaria a bola numa mesa
+ * invisível e mataria a órbita. O que esta elipse faz é outra coisa: é escura
+ * demais pra ler como sombra e difusa demais pra ter borda — lê como a peça
+ * deslocando ar. Ela encolhe com a distância, que é o que dá profundidade. */
+.corpo::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -9%;
+  width: 74%;
+  height: 15%;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side,
+    rgba(var(--ar), var(--ar-op)) 0%, rgba(var(--ar), 0) 100%);
+  filter: blur(9px);
+  opacity: var(--d);
+  pointer-events: none;
+}
+
+/* o rótulo é a decisão de usabilidade mais importante desta tela: bola de pão
+ * de queijo não diz "bio". a divisão por var(--s) desfaz a escala do pai —
+ * o texto encolhe com a distância, mas muito menos que a peça, senão o que
+ * está atrás vira poeira ilegível */
+.rotulo {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + var(--base) * var(--s) * .5 + 10px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: clamp(11px, calc(11px + 4px * var(--d)), 15px);
+  letter-spacing: .02em;
+  opacity: calc(.30 + .70 * var(--d));
+  transition: opacity .25s;
+  pointer-events: none;
+}
+
+/* metade de trás da órbita: o rótulo sobe pra cima da peça, onde há campo
+   livre. Ver o comentário no capa.js */
+.planetoide[data-atras="sim"] .rotulo {
+  top: auto;
+  bottom: calc(50% + var(--base) * var(--s) * .5 + 10px);
+}
+
+.planetoide[data-foco="sim"] .rotulo { font-weight: 600; }
+
+.planetoide:hover .rotulo { opacity: 1; }
+
+/* ─── rodapé ────────────────────────────────────────────────────────────── */
+
+.dica {
+  margin: 0;
+  font-size: 12px;
+  opacity: .4;
+  transition: opacity .6s;
+  min-height: 1.2em;
+}
+.dica[hidden] { display: block; opacity: 0; }
+
+/* a legenda do foco: existe só no celular, onde os rótulos individuais saem */
+.legenda {
+  display: none;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media (max-width: 620px) {
+  .orbita { --base: clamp(112px, 27vw, 170px); height: 40vh; }
+  .sub { display: none; }
+  .rotulo { display: none; }
+  .legenda { display: block; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .corpo, body { transition: none; }
+}

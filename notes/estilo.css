@@ -1,0 +1,245 @@
+/* notes — o app de notas do iPhone, no papel do site
+ *
+ * Duas colunas: títulos à esquerda, a nota aberta à direita com a data
+ * centralizada em cima. No celular vira o iPhone de verdade: a lista ocupa a
+ * tela, a nota abre por cima e o "‹ notes" volta.
+ *
+ * O destaque da nota selecionada é o amarelo do app de notas, mas desbotado
+ * pro tom do papel pólen (dados.js), pra não brigar com o resto do site.
+ * Tokens PLACEHOLDER, como no resto: quando o branding chegar, troca junto.
+ */
+
+:root {
+  --tom:     rgb(229, 225, 214);   /* o papel pólen, de dados.js */
+  --creme:   #efece4;
+  --borda:   #ded9cd;
+  --tinta:   #211f1c;
+  --apagado: rgba(33, 31, 28, .5);
+  --fio:     rgba(33, 31, 28, .12);
+  --folha:   #faf8f3;
+  --marca:   #f3dd8a;             /* o amarelo do app de notas, desbotado */
+  --ar:      22, 20, 16;
+
+  --fonte-titulo: Georgia, 'Times New Roman', serif;
+  --fonte-corpo: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  color: var(--tinta);
+  font-family: var(--fonte-corpo);
+  background:
+    radial-gradient(ellipse 130% 100% at 50% 40%,
+      var(--tom) 0%, var(--creme) 45%, var(--borda) 100%) fixed;
+  background-color: var(--creme);
+}
+
+.voltar {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 2;
+  font-size: 14px;
+  letter-spacing: .02em;
+  color: inherit;
+  text-decoration: none;
+  opacity: .58;
+  transition: opacity .2s;
+}
+.voltar:hover, .voltar:focus-visible { opacity: 1; }
+
+/* a janela: uma folha só, dividida, com a mesma sombra de ar da capa */
+.notas {
+  max-width: 1040px;
+  height: calc(100svh - 128px);
+  min-height: 420px;
+  margin: 72px auto 56px;
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  background: var(--folha);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px -24px rgba(var(--ar), .35);
+}
+
+/* ---------- lista ---------- */
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 20px 10px 12px;
+  border-right: 1px solid var(--fio);
+  background: rgba(239, 236, 228, .55);
+}
+
+.lista h1 {
+  font-family: var(--fonte-titulo);
+  font-size: 28px;
+  font-weight: 400;
+  margin: 0 10px 12px;
+}
+
+.busca {
+  margin: 0 6px 12px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: inherit;
+  background: rgba(33, 31, 28, .06);
+  border: 0;
+  border-radius: 8px;
+  outline: none;
+}
+.busca:focus-visible { box-shadow: 0 0 0 2px var(--marca); }
+
+.lista ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.lista li + li a::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 12px; right: 12px;
+  border-top: 1px solid var(--fio);
+}
+
+.lista a {
+  position: relative;
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+.lista a:hover { background: rgba(33, 31, 28, .04); }
+
+.lista a[aria-current] { background: var(--marca); }
+/* o fio some em volta do selecionado, como no app */
+.lista a[aria-current]::before,
+.lista li:has(a[aria-current]) + li a::before { display: none; }
+
+.lista strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lista span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lista span time { font-weight: 500; }
+.lista span time:empty + em { margin-left: 0; }
+.lista span em { font-style: normal; color: var(--apagado); margin-left: .35em; }
+
+.contagem {
+  margin: 8px 0 0;
+  font-size: 12px;
+  text-align: center;
+  color: var(--apagado);
+}
+
+/* ---------- nota aberta ---------- */
+
+.nota {
+  overflow-y: auto;
+  padding: 20px clamp(24px, 6vw, 72px) 64px;
+}
+
+.nota > time {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  color: var(--apagado);
+  margin-bottom: 28px;
+}
+
+.nota h2 {
+  font-family: var(--fonte-titulo);
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 400;
+  letter-spacing: -.01em;
+  line-height: 1.15;
+  margin: 0 0 .7em;
+}
+
+.nota > time:empty { display: none; }
+.nota > time:empty + h2 { margin-top: 20px; }
+
+/* um item por linha, como no bloco de notas: sem respiro de parágrafo */
+.nota p {
+  font-size: clamp(15px, 1.25vw, 17px);
+  line-height: 1.6;
+  margin: 0 0 .25em;
+  max-width: 62ch;
+}
+
+.fechar { display: none; }
+
+/* ---------- celular: duas telas, como no iPhone ---------- */
+
+@media (max-width: 760px) {
+  .notas {
+    display: block;
+    position: relative;
+    height: auto;
+    min-height: calc(100svh - 64px);
+    margin: 56px 0 0;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .lista {
+    border-right: 0;
+    background: none;
+    padding: 20px 6px 24px;
+  }
+  .lista ul { overflow: visible; }
+
+  .nota {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    background: var(--folha);
+    padding: 16px 16px 48px;
+    transform: translateX(100%);
+    transition: transform .3s ease;
+    visibility: hidden;
+  }
+  .notas[data-aberta="sim"] .nota {
+    transform: none;
+    visibility: visible;
+  }
+
+  .fechar {
+    display: inline-block;
+    margin: 0 0 12px -4px;
+    padding: 4px;
+    font: inherit;
+    font-size: 16px;
+    color: #a9861d;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .nota > time { margin-bottom: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nota { transition: none; }
+}
