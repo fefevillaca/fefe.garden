@@ -1,0 +1,16 @@
+{
+  "_leia": "PLACEHOLDER. São lugares públicos óbvios de BH, escolhidos só pra testar o desenho do pin e da luneta — não são as dicas da Fernanda. Quando as dicas reais entrarem, é este arquivo que muda: nada no código depende do conteúdo. `quem` vira o arquivo do rosto recortado; `pedir` é o campo que o Google não tem.",
+  "cidade": "bh",
+  "pins": [
+    { "lat": -19.9227, "lon": -43.9425, "lugar": "Mercado Central",        "quem": "fefe",   "fazer": "dar uma volta sem pressa",     "pedir": "—" },
+    { "lat": -19.9322, "lon": -43.9378, "lugar": "Praça da Liberdade",     "quem": "fefe",   "fazer": "sentar no gramado no fim da tarde", "pedir": "—" },
+    { "lat": -19.9376, "lon": -43.9327, "lugar": "Savassi",                "quem": "amiga1", "fazer": "andar sem destino",            "pedir": "—" },
+    { "lat": -19.9250, "lon": -43.9450, "lugar": "Mercado Novo",           "quem": "amigo2", "fazer": "subir até o último andar",     "pedir": "—" },
+    { "lat": -19.8556, "lon": -43.9797, "lugar": "Igreja da Pampulha",     "quem": "fefe",   "fazer": "ver os azulejos do Portinari", "pedir": "—" },
+    { "lat": -19.9245, "lon": -43.9350, "lugar": "Parque Municipal",       "quem": "amiga1", "fazer": "atravessar a pé",              "pedir": "—" },
+    { "lat": -19.9536, "lon": -43.9163, "lugar": "Mirante das Mangabeiras","quem": "amigo2", "fazer": "chegar antes do pôr do sol",   "pedir": "—" },
+    { "lat": -19.9145, "lon": -43.9235, "lugar": "Santa Tereza",           "quem": "amigo3", "fazer": "ir num fim de tarde de quinta","pedir": "—" },
+    { "lat": -19.9410, "lon": -43.9270, "lugar": "Serra",                  "quem": "amiga4", "fazer": "subir a pé pela manhã",        "pedir": "—" },
+    { "lat": -19.9180, "lon": -43.9390, "lugar": "Lagoinha",               "quem": "amigo3", "fazer": "ver o viaduto de baixo",       "pedir": "—" }
+  ]
+}

@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mapa — fefê villaça</title>
+<link rel="stylesheet" href="papel.css?v=1791406260">
+<style>
+  :root {
+    --tom: #f6f2ea;
+    --creme: #efece4;
+    --borda: #ded9cd;
+    --tinta: #211f1c;
+    --luneta: 190px;   /* raio */
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--creme);
+    font: 14px/1.5 system-ui, -apple-system, sans-serif;
+    color: var(--tinta);
+    overscroll-behavior: none;
+  }
+
+  /* a mesa é a janela; a folha é maior que ela e escorrega por baixo */
+  .mesa {
+    position: absolute; inset: 0; overflow: hidden;
+    cursor: grab; touch-action: none;
+    background: radial-gradient(ellipse 120% 100% at 50% 46%,
+                var(--tom) 0%, var(--creme) 48%, var(--borda) 100%);
+  }
+  .mesa.arrastando { cursor: grabbing; }
+
+    /* `isolation` prende os mix-blend-mode da matéria DENTRO da folha. Sem
+     isso o papel multiplicaria com o creme da mesa e a folha ficaria suja
+     justamente nas bordas, que é onde ela precisa estar limpa */
+  .folha { position: absolute; top: 0; left: 0; will-change: transform;
+           transform-origin: 0 0;
+           isolation: isolate; --papel: 1; --desgaste: 1; }
+  .folha img { position: absolute; top: 0; left: 0; display: block; }
+  /* a cor mora numa camada por cima da tinta, recortada num círculo.
+     é só isto: um clip-path que segue o ponteiro. sem canvas, sem webgl */
+  .folha img.cor { clip-path: circle(0px at -1000px -1000px); }
+
+  /* ── o anel da luneta ── */
+  .anel {
+    position: absolute; pointer-events: none;
+    width: calc(var(--luneta) * 2); height: calc(var(--luneta) * 2);
+    margin: calc(var(--luneta) * -1) 0 0 calc(var(--luneta) * -1);
+    border-radius: 50%;
+    border: 1px solid rgba(33, 31, 28, 0.32);
+    box-shadow: 0 0 0 1px rgba(255, 253, 244, 0.5) inset,
+                0 14px 40px rgba(22, 20, 16, 0.16);
+    opacity: 0; transition: opacity 0.25s;
+  }
+  .mesa.viva .anel { opacity: 1; }
+
+  /* ── os pins ── */
+  /* fora da luneta é marca de tinta; dentro vira rosto colorido. o pin NUNCA
+     some: quem procura tem que ver onde tem dica antes de varrer o mapa */
+  .pin {
+    position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px;
+    border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+    background: var(--tom); color: var(--tinta);
+    box-shadow: 0 0 0 1.5px var(--tinta);
+    font: 600 11px/1 system-ui, sans-serif;
+    display: grid; place-items: center;
+    transition: transform 0.16s;
+    /* o pin mora DENTRO da folha, pra a posição escalar junto com o mapa — mas
+       o tamanho dele não pode escalar: rosto de amigo tem que ter o mesmo
+       tamanho na tela em qualquer zoom. Daí o contra-escalar. */
+    transform: scale(var(--contra, 1));
+  }
+  .pin:hover, .pin:focus-visible {
+    transform: scale(calc(var(--contra, 1) * 1.22)); outline: none;
+  }
+  .pin b { pointer-events: none; }
+
+  /* ── a barra ── */
+  .barra {
+    position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+    display: flex; gap: 7px; align-items: center; justify-content: center;
+    flex-wrap: wrap; z-index: 5; max-width: calc(100vw - 28px);
+    background: rgba(246, 242, 234, 0.86); backdrop-filter: blur(8px);
+    border: 1px solid rgba(33, 31, 28, 0.1);
+    border-radius: 22px; padding: 7px 10px;
+  }
+  .risco { width: 1px; height: 20px; background: rgba(33, 31, 28, 0.12); }
+  button.op {
+    font: inherit; font-size: 13px; padding: 5px 13px; border-radius: 999px;
+    cursor: pointer; border: 1px solid rgba(33, 31, 28, 0.16);
+    background: rgba(255, 255, 255, 0.55); color: var(--tinta);
+  }
+  button.op[aria-pressed="true"] {
+    background: var(--tinta); color: var(--tom); border-color: var(--tinta);
+  }
+  /* a dica saiu de dentro da barra: com três grupos de botão ela era o item
+     mais estreito do flex e quebrava letra por letra, em coluna */
+  .dica {
+    position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
+    font-size: 11px; opacity: 0.42; white-space: nowrap; z-index: 5;
+  }
+
+  /* ── o cartão ── */
+  .cartao {
+    position: absolute; right: 18px; top: 18px; width: 268px; z-index: 6;
+    background: var(--tom); border: 1px solid rgba(33, 31, 28, 0.14);
+    border-radius: 4px; padding: 16px 18px;
+    box-shadow: 0 16px 44px rgba(22, 20, 16, 0.14);
+    display: none;
+  }
+  .cartao.aberto { display: block; }
+  .cartao h2 { font: 500 18px/1.25 Georgia, serif; margin-bottom: 10px; }
+  .cartao dt { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+               opacity: 0.42; margin-top: 10px; }
+  .cartao dd { font-size: 14px; }
+  .cartao .pedir { font-weight: 600; }
+  .cartao button { position: absolute; top: 8px; right: 10px; border: 0;
+                   background: none; cursor: pointer; font-size: 17px;
+                   opacity: 0.4; color: inherit; }
+  .credito { position: absolute; left: 14px; bottom: 4px; font-size: 11px;
+             opacity: 0.38; z-index: 5; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pin, .anel { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="mesa" id="mesa">
+  <div class="folha" id="folha">
+    <img class="tinta" id="tinta" src="folha-bh-miolo-traco.svg" alt="Belo Horizonte">
+    <img class="cor"   id="cor"   src="folha-bh-miolo-luneta.svg" alt="" aria-hidden="true">
+
+    <!-- a matéria vem DEPOIS das peles e ANTES dos pins: o papel cobre o
+         desenho, e o rosto de quem indicou flutua acima do papel — que é a
+         mesma regra do passarinho do pomar, o que veio de fora fica por cima -->
+    <div class="materia" id="materia" aria-hidden="true">
+      <div class="nuvem"></div>
+      <div class="fotoSombra"></div>
+      <div class="fotoLuz"></div>
+      <div class="fibra"></div>
+      <div class="desgasteVinco"></div>
+      <div class="desgaste"></div>
+      <div class="luz"></div>
+      <div class="corte"></div>
+    </div>
+
+    <div id="pins"></div>
+  </div>
+  <div class="anel" id="anel"></div>
+</div>
+
+<div class="barra">
+  <button class="op" id="bMenos" aria-label="menos zoom">−</button>
+  <button class="op" id="bMais" aria-label="mais zoom">+</button>
+  <span class="risco"></span>
+  <button class="op" id="bLuneta" aria-pressed="true">luneta</button>
+  <button class="op" id="bTudo" aria-pressed="false">tudo colorido</button>
+  <span class="risco"></span>
+  <button class="op" data-papel="0">sem papel</button>
+  <button class="op" data-papel="0.55" aria-pressed="true">papel</button>
+  <button class="op" data-papel="1">papel forte</button>
+  <span class="risco"></span>
+  <button class="op" data-desgaste="0">novo</button>
+  <button class="op" data-desgaste="1" aria-pressed="true">gasto</button>
+  <button class="op" data-desgaste="1.9">muito gasto</button>
+</div>
+<p class="dica" id="dica">arraste pra andar · pinça, +/− ou os botões pra zoom</p>
+
+<div class="cartao" id="cartao" role="dialog" aria-live="polite">
+  <button id="fechar" aria-label="fechar">×</button>
+  <h2 id="cLugar"></h2>
+  <dl>
+    <dt>o que fazer</dt><dd id="cFazer"></dd>
+    <dt>o que pedir</dt><dd class="pedir" id="cPedir"></dd>
+    <dt>quem indicou</dt><dd id="cQuem"></dd>
+  </dl>
+</div>
+
+<p class="credito">geometria © OpenStreetMap contributors · ODbL — pins de teste</p>
+
+<script>
+(async function () {
+  const RECORTE = 'miolo';
+  const mesa = document.getElementById('mesa');
+  const folha = document.getElementById('folha');
+  const cor = document.getElementById('cor');
+  const anel = document.getElementById('anel');
+  const R = parseFloat(getComputedStyle(document.documentElement)
+              .getPropertyValue('--luneta'));
+
+  // ── a projeção vem do desenhar.py, pra não reimplementar Mercator aqui ──
+  const proj = await (await fetch(`projecao-bh-${RECORTE}.json`)).json();
+  const dados = await (await fetch('pins.json')).json();
+  const naFolha = (lon, lat) => {
+    const x = lon * Math.PI / 180;
+    const y = Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI / 180) / 2));
+    return [(x - proj.x0) * proj.escala + proj.margem,
+            (proj.y1 - y) * proj.escala + proj.margem];
+  };
+
+  folha.style.width = proj.larg + 'px';
+  folha.style.height = proj.alt + 'px';
+
+  // ── onde a folha está, e onde a luneta está ──
+  // A folha começa centrada no Contorno, que é onde a cidade tem densidade.
+  const [cx, cy] = naFolha(-43.938, -19.928);
+  let px = innerWidth / 2 - cx, py = innerHeight / 2 - cy;
+  // Ponteiro fino segue o cursor. No toque não existe cursor, então a luneta
+  // fica parada no meio e é a FOLHA que passeia por baixo — vira visor.
+  const segue = matchMedia('(pointer: fine)').matches;
+  let lx = innerWidth / 2, ly = innerHeight / 2;
+  let luneta = true;
+  let escala = 1;
+  const MIN = 0.4, MAX = 2.2;
+
+  // Quanto de creme pode aparecer além da folha, como fração da tela. Existe
+  // pra que dê pra ver o papel ACABAR — é o precipício. Foi 50% na primeira
+  // versão e ficou errado: arrastando um pouco, meia tela virava deserto e a
+  // folha parecia ter escapado. O suficiente é enxergar a borda.
+  const FOLGA = 0.07;
+
+  function limitar() {
+    const L = proj.larg * escala, A = proj.alt * escala;
+    // Com zoom pra fora a folha fica MENOR que a tela. Aí não há o que
+    // limitar: ela centraliza, senão o clamp inverte e a folha gruda num
+    // canto — parece que o arraste travou.
+    if (L <= innerWidth) px = (innerWidth - L) / 2;
+    else {
+      const f = Math.min(innerWidth * FOLGA, L * 0.5);
+      px = Math.min(f, Math.max(innerWidth - L - f, px));
+    }
+    if (A <= innerHeight) py = (innerHeight - A) / 2;
+    else {
+      const f = Math.min(innerHeight * FOLGA, A * 0.5);
+      py = Math.min(f, Math.max(innerHeight - A - f, py));
+    }
+  }
+
+  function pintar() {
+    limitar();
+    folha.style.transform = `translate(${px}px, ${py}px) scale(${escala})`;
+    folha.style.setProperty('--contra', 1 / escala);
+    anel.style.left = lx + 'px';
+    anel.style.top = ly + 'px';
+    // O clip-path vive no espaço da FOLHA — que agora está escalada — e o
+    // ponteiro vive no espaço da MESA. Daí subtrair a origem E dividir pela
+    // escala. Sem a divisão, a luneta desliza pra longe do cursor conforme o
+    // zoom sobe, e o raio dela cresce junto: ela é um instrumento, tem tamanho
+    // fixo na tela.
+    cor.style.clipPath = luneta
+      ? `circle(${R / escala}px at ${(lx - px) / escala}px ${(ly - py) / escala}px)`
+      : 'none';
+  }
+
+  // Zoom em torno de um ponto da tela: o que estava embaixo dele continua
+  // embaixo dele. Sem esta correção o mapa foge pro canto a cada passo.
+  function ampliar(fator, ax, ay) {
+    const antes = escala;
+    escala = Math.min(MAX, Math.max(MIN, escala * fator));
+    if (escala === antes) return;
+    px = ax - (ax - px) * escala / antes;
+    py = ay - (ay - py) * escala / antes;
+    pintar();
+  }
+
+  // ── os pins ──
+  const caixa = document.getElementById('pins');
+  const cartao = document.getElementById('cartao');
+  dados.pins.forEach((p, i) => {
+    const [x, y] = naFolha(p.lon, p.lat);
+    const b = document.createElement('button');
+    b.className = 'pin';
+    b.style.left = x + 'px';
+    b.style.top = y + 'px';
+    b.innerHTML = `<b>${p.quem.slice(0, 2).toUpperCase()}</b>`;
+    b.title = p.lugar;
+    b.setAttribute('aria-label', `${p.lugar} — indicado por ${p.quem}`);
+    b.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      document.getElementById('cLugar').textContent = p.lugar;
+      document.getElementById('cFazer').textContent = p.fazer;
+      document.getElementById('cPedir').textContent = p.pedir;
+      document.getElementById('cQuem').textContent = p.quem;
+      cartao.classList.add('aberto');
+    });
+    caixa.appendChild(b);
+  });
+  document.getElementById('fechar').onclick = () => cartao.classList.remove('aberto');
+
+  // ── arrastar ──
+  let pegou = null;
+  mesa.addEventListener('pointerdown', (ev) => {
+    if (ev.target.closest('.pin')) return;
+    pegou = { x: ev.clientX, y: ev.clientY, px, py, mexeu: false };
+    mesa.setPointerCapture(ev.pointerId);
+    mesa.classList.add('arrastando');
+  });
+  mesa.addEventListener('pointermove', (ev) => {
+    mesa.classList.add('viva');
+    if (segue) { lx = ev.clientX; ly = ev.clientY; }
+    if (pegou) {
+      px = pegou.px + (ev.clientX - pegou.x);
+      py = pegou.py + (ev.clientY - pegou.y);
+      if (Math.abs(ev.clientX - pegou.x) + Math.abs(ev.clientY - pegou.y) > 3)
+        pegou.mexeu = true;
+    }
+    pintar();
+  });
+  const soltar = () => { mesa.classList.remove('arrastando'); pegou = null; };
+  mesa.addEventListener('pointerup', soltar);
+  mesa.addEventListener('pointercancel', soltar);
+  mesa.addEventListener('pointerleave', () => {
+    soltar();
+    if (segue) mesa.classList.remove('viva');
+  });
+
+  // roda: a folha anda, como papel empurrado na mesa
+  mesa.addEventListener('wheel', (ev) => {
+    ev.preventDefault();
+    // No trackpad do Mac, pinça chega como wheel com ctrlKey. Roda pura o
+    // sistema manda como rolagem, e rolagem é andar — trocar isso faz o mapa
+    // dar zoom quando a pessoa só queria descer.
+    if (ev.ctrlKey || ev.metaKey) {
+      ampliar(Math.exp(-ev.deltaY * 0.01), ev.clientX, ev.clientY);
+      return;
+    }
+    px -= ev.deltaX; py -= ev.deltaY;
+    pintar();
+  }, { passive: false });
+
+  // teclado: a folha é maior que a tela, então tem que dar pra andar sem mouse
+  addEventListener('keydown', (ev) => {
+    const passo = ev.shiftKey ? 240 : 80;
+    const mapa = { ArrowLeft: [passo, 0], ArrowRight: [-passo, 0],
+                   ArrowUp: [0, passo], ArrowDown: [0, -passo] };
+    if (mapa[ev.key]) {
+      ev.preventDefault();
+      px += mapa[ev.key][0]; py += mapa[ev.key][1];
+      if (!segue) { lx = innerWidth / 2; ly = innerHeight / 2; }
+      mesa.classList.add('viva');
+      pintar();
+    }
+    if (ev.key === '+' || ev.key === '=') {
+      ev.preventDefault(); ampliar(1.25, innerWidth / 2, innerHeight / 2);
+    }
+    if (ev.key === '-' || ev.key === '_') {
+      ev.preventDefault(); ampliar(1 / 1.25, innerWidth / 2, innerHeight / 2);
+    }
+    if (ev.key === 'Escape') cartao.classList.remove('aberto');
+  });
+
+  // ── os dois modos ──
+  const bL = document.getElementById('bLuneta'), bT = document.getElementById('bTudo');
+  function modo(comLuneta) {
+    luneta = comLuneta;
+    // sem luneta, a folha inteira colorida é o `dobrado` — a pele de dentro da
+    // luneta é calibrada pra um círculo de 190px, e espalhada na tela toda ela
+    // fica doce demais
+    cor.src = comLuneta ? 'folha-bh-miolo-luneta.svg' : 'folha-bh-miolo-dobrado.svg';
+    bL.setAttribute('aria-pressed', String(comLuneta));
+    bT.setAttribute('aria-pressed', String(!comLuneta));
+    anel.style.display = comLuneta ? '' : 'none';
+    pintar();
+  }
+  bL.onclick = () => modo(true);
+  bT.onclick = () => modo(false);
+
+  // ── quanto de papel ──
+  // Botão em vez de valor fixo pelo mesmo motivo do alternador de fundo da
+  // capa: matéria é coisa que se decide olhando. Sai antes do build.
+  document.querySelectorAll('[data-papel]').forEach((b) => {
+    b.addEventListener('click', () => {
+      folha.style.setProperty('--papel', b.dataset.papel);
+      document.querySelectorAll('[data-papel]').forEach(
+        (o) => o.setAttribute('aria-pressed', String(o === b)));
+    });
+  });
+  folha.style.setProperty('--papel', '0.55');
+
+  document.getElementById('bMais').onclick =
+    () => ampliar(1.25, innerWidth / 2, innerHeight / 2);
+  document.getElementById('bMenos').onclick =
+    () => ampliar(1 / 1.25, innerWidth / 2, innerHeight / 2);
+
+  // ── quanto de desgaste ──
+  document.querySelectorAll('[data-desgaste]').forEach((b) => {
+    b.addEventListener('click', () => {
+      folha.style.setProperty('--desgaste', b.dataset.desgaste);
+      document.querySelectorAll('[data-desgaste]').forEach(
+        (o) => o.setAttribute('aria-pressed', String(o === b)));
+    });
+  });
+
+  if (!segue) {
+    document.getElementById('dica').textContent = 'arraste o mapa por baixo da luneta';
+    mesa.classList.add('viva');
+  }
+  addEventListener('resize', pintar);
+  pintar();
+})();
+</script>
+</body>
+</html>

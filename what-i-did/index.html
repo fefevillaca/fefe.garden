@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>what i did? — fefê villaça</title>
+<meta name="description" content="Work by Fernanda Villaça, one folder per brand.">
+<link rel="stylesheet" href="estilo.css?v=1791406260">
+</head>
+<body>
+
+<a class="voltar" href="/" aria-label="voltar para a capa">← back</a>
+
+<main class="finder">
+  <header class="barra">
+    <span class="semaforo" aria-hidden="true"><i></i><i></i><i></i></span>
+    <button class="voltar-pasta" type="button" aria-label="back">‹</button>
+    <h1 class="titulo">what i did?</h1>
+  </header>
+
+  <nav class="lateral" aria-label="folders">
+    <p class="grupo">favorites</p>
+    <ul></ul>
+  </nav>
+
+  <section class="conteudo" aria-live="polite">
+    <ul class="icones"></ul>
+    <p class="vazia" hidden>this folder is empty for now</p>
+  </section>
+
+  <footer class="rodape"></footer>
+</main>
+
+<!-- o aviso do Mac, como o de "salvar ou não salvar": abre junto com a pasta e
+     conta o que ela fez e aprendeu naquele trabalho -->
+<dialog class="aviso" aria-labelledby="aviso-titulo">
+  <span class="aviso-icone" aria-hidden="true"><img src="icones/pasta.png" alt=""><i class="selo"></i></span>
+  <h2 id="aviso-titulo"></h2>
+  <div class="aviso-texto"></div>
+  <form method="dialog" class="aviso-botoes">
+    <button value="voltar" type="submit">Go Back</button>
+    <button value="abrir" type="submit" class="padrao" autofocus>Open Folder</button>
+  </form>
+</dialog>
+
+<!-- a Visualização Rápida do Mac: a imagem grande por cima, Esc ou clique fora fecha -->
+<dialog class="olhada" aria-label="preview">
+  <header><button class="fechar-olhada" type="button" aria-label="close">×</button><p></p></header>
+  <img alt="">
+  <video controls playsinline preload="metadata" hidden></video>
+</dialog>
+
+<script src="arquivos.js?v=1791406260"></script>
+<script>
+// O Finder do Mac: a raiz mostra uma pasta por marca, e a pasta aberta mostra
+// os arquivos dela. A pasta aberta mora no hash (/what-i-did#meca), então dá pra
+// mandar link de uma marca só, e o voltar do navegador sobe de volta pra raiz.
+// Um clique abre, porque quem olha não está no próprio computador e não sabe
+// que precisaria de dois.
+
+const slug = t => t.normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+// do mais recente pro mais antigo, pastas e arquivos. sort é estável: quem não
+// tem data não sai do lugar relativo aos vizinhos sem data
+const cronologica = lista => [...lista].sort((a, b) =>
+  a.data && b.data ? b.data.localeCompare(a.data) : 0);
+
+// pasta com `ordem: "views"`: o que teve mais visualização vem primeiro.
+// `ordem: "lista"`: fica na ordem em que está no arquivos.js
+const ordenar = pasta => pasta.ordem === "views"
+  ? [...pasta.arquivos].sort((a, b) => (b.views || 0) - (a.views || 0))
+  : pasta.ordem === "lista" ? pasta.arquivos
+  : cronologica(pasta.arquivos);
+
+// as pastas também em ordem cronológica, na raiz e na lateral
+const pastas = cronologica(window.PASTAS).map(p => ({ ...p, id: p.id || slug(p.nome) }));
+const ICONE = { pasta: "icones/pasta.png", pdf: "icones/documento.png",
+  documento: "icones/documento.png", link: "icones/link.png",
+  imagem: "icones/imagem.png", video: "icones/documento.png" };
+
+const titulo = document.querySelector(".titulo");
+const voltar = document.querySelector(".voltar-pasta");
+const icones = document.querySelector(".icones");
+const vazia = document.querySelector(".vazia");
+const rodape = document.querySelector(".rodape");
+const lateral = document.querySelector(".lateral ul");
+
+function item({ nome, href, icone, externo, logo }) {
+  const li = document.createElement("li");
+  const a = document.createElement("a");
+  a.href = href;
+  if (externo) { a.target = "_blank"; a.rel = "noopener"; }
+  a.innerHTML = `<img alt="" draggable="false"><span></span>`;
+  a.querySelector("img").src = icone;
+  // o logo gravado na pasta: uma máscara pintada de azul escuro por cima do ícone
+  if (logo) {
+    const selo = document.createElement("i");
+    selo.className = "selo";
+    selo.style.setProperty("--logo", `url("${logo}")`);
+    a.querySelector("img").after(selo);
+  }
+  a.querySelector("span").textContent = nome;
+  li.append(a);
+  return li;
+}
+
+function lado(atual) {
+  const raiz = { id: "", nome: "what i did?" };
+  lateral.replaceChildren(...[raiz, ...pastas].map(p => {
+    const li = item({ nome: p.nome, href: p.site || "#" + p.id, externo: !!p.site,
+      icone: p.id ? ICONE.pasta : "icones/pasta-aberta.png" });
+    li.firstChild.toggleAttribute("aria-current", p.id === atual);
+    return li;
+  }));
+}
+
+function abrir() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  const pasta = pastas.find(p => p.id === id);
+
+  const lista = pasta
+    ? ordenar(pasta).map(f => {
+        const li = item({ nome: f.nome, href: f.link,
+          icone: f.capa || ICONE[f.tipo] || ICONE.documento, externo: true });
+        // com capa, a miniatura no lugar do ícone; vídeo ganha o play por cima, como no Finder
+        if (f.capa) li.classList.add("miniatura");
+        if (f.tipo === "video" && f.capa) li.classList.add("video");
+        return li;
+      })
+    : pastas.map(p => item({ nome: p.nome, href: p.site || "#" + p.id,
+        externo: !!p.site, icone: ICONE.pasta, logo: p.logo }));
+
+  // na mesa, cada impresso cai num ângulo e num deslocamento próprios. Sai do
+  // índice, e não do acaso, pra mesa ficar igual toda vez que a pasta abre.
+  const mesa = pasta?.vista === "mesa";
+  icones.classList.toggle("mesa", mesa);
+  if (mesa) lista.forEach((li, i) => {
+    li.style.setProperty("--giro", `${((i * 37) % 11) - 5}deg`);
+    li.style.setProperty("--desvio", `${((i * 53) % 9) - 4}px`);
+    li.querySelector("img").alt = li.textContent;
+  });
+
+  icones.replaceChildren(...lista);
+  vazia.hidden = lista.length > 0;
+  titulo.textContent = pasta ? pasta.nome : "what i did?";
+  voltar.disabled = !pasta;
+  rodape.textContent = lista.length === 1 ? "1 item" : `${lista.length} items`;
+  document.title = pasta ? `${pasta.nome} — what i did? — fefê villaça`
+                         : "what i did? — fefê villaça";
+  lado(pasta ? pasta.id : "");
+  if (pasta?.aviso) avisar(pasta);
+}
+
+const aviso = document.querySelector(".aviso");
+function avisar(pasta) {
+  aviso.querySelector("h2").textContent = pasta.nome;
+  aviso.querySelector(".aviso-texto").replaceChildren(
+    ...pasta.aviso.split(/\n\n+/).map(t => {
+      const p = document.createElement("p");
+      p.textContent = t;
+      return p;
+    }));
+  const selo = aviso.querySelector(".selo");
+  selo.hidden = !pasta.logo;
+  if (pasta.logo) selo.style.setProperty("--logo", `url("${pasta.logo}")`);
+  aviso.querySelector(".aviso-texto").scrollTop = 0;
+  if (!aviso.open) aviso.showModal();
+}
+// "Go Back" volta pra raiz; "Open Folder", Esc ou clique fora deixam a pasta aberta
+aviso.addEventListener("close", () => {
+  // sempre pra raiz: o voltar do navegador podia cair noutra pasta com aviso
+  if (aviso.returnValue === "voltar") { history.pushState(null, "", location.pathname); abrir(); }
+  aviso.returnValue = "";
+});
+aviso.addEventListener("click", e => { if (e.target === aviso) aviso.close(); });
+
+// o ‹ é um voltar de verdade quando veio da raiz, pra não empilhar histórico
+voltar.addEventListener("click", () => {
+  if (history.length > 1 && location.hash) history.back();
+  else { history.replaceState(null, "", location.pathname); abrir(); }
+});
+
+// imagem abre na Visualização Rápida em vez de outra aba
+const olhada = document.querySelector(".olhada");
+icones.addEventListener("click", e => {
+  const a = e.target.closest("a");
+  const pasta = pastas.find(p => p.id === decodeURIComponent(location.hash.slice(1)));
+  const f = pasta?.arquivos.find(f => f.link === a?.getAttribute("href"));
+  if (!f || (f.tipo !== "imagem" && f.tipo !== "video")) return;
+  // vídeo de fora (reel) não toca aqui: segue o link e abre em outra aba
+  if (/^https?:/.test(f.link)) return;
+  e.preventDefault();
+  const video = f.tipo === "video";
+  const im = olhada.querySelector("img"), vi = olhada.querySelector("video");
+  olhada.querySelector("p").textContent = f.nome;
+  im.hidden = video;
+  vi.hidden = !video;
+  if (video) { vi.poster = f.capa || ""; vi.src = f.link; }
+  else { im.src = f.link; im.alt = f.nome; }
+  olhada.showModal();
+  if (video) vi.play().catch(() => {});
+});
+olhada.addEventListener("click", e => {
+  if (e.target === olhada || e.target.closest(".fechar-olhada")) olhada.close();
+});
+// fechar a Visualização Rápida para o vídeo, senão o som continua tocando
+olhada.addEventListener("close", () => {
+  const vi = olhada.querySelector("video");
+  vi.pause(); vi.removeAttribute("src"); vi.load();
+});
+
+addEventListener("hashchange", abrir);
+abrir();
+</script>
+
+</body>
+</html>

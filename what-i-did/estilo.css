@@ -1,0 +1,442 @@
+/* what i did? — o Finder do Mac, no papel do site
+ *
+ * Uma janela com a barra de cima (semáforo, voltar, nome da pasta), a lateral
+ * de favoritos e os ícones em grade. Os ícones de pasta e de arquivo são os do
+ * próprio macOS, tirados do CoreTypes.bundle. No celular vira o app Arquivos
+ * do iPhone: some a lateral e a grade fica em três colunas.
+ *
+ * O fundo e a sombra de ar são os da página de notes, pra as duas parecerem
+ * apps do mesmo computador. Tokens PLACEHOLDER, como no resto do site.
+ */
+
+:root {
+  --tom:     rgb(224, 212, 199);   /* o pêssego, de capa/dados.js */
+  --creme:   #efece4;
+  --borda:   #ded9cd;
+  --tinta:   #211f1c;
+  --apagado: rgba(33, 31, 28, .5);
+  --fio:     rgba(33, 31, 28, .1);
+  --janela:  #faf8f3;
+  --lado:    rgba(232, 228, 219, .7);
+  --selecao: rgba(33, 31, 28, .08);
+  --azul:    #2f6fd6;              /* o azul de seleção do Finder */
+  --ar:      22, 20, 16;
+
+  --fonte: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  color: var(--tinta);
+  font-family: var(--fonte);
+  background:
+    radial-gradient(ellipse 130% 100% at 50% 40%,
+      var(--tom) 0%, var(--creme) 45%, var(--borda) 100%) fixed;
+  background-color: var(--creme);
+}
+
+.voltar {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 2;
+  font-size: 14px;
+  letter-spacing: .02em;
+  color: inherit;
+  text-decoration: none;
+  opacity: .58;
+  transition: opacity .2s;
+}
+.voltar:hover, .voltar:focus-visible { opacity: 1; }
+
+/* ---------- a janela ---------- */
+
+.finder {
+  max-width: 1040px;
+  height: calc(100svh - 128px);
+  min-height: 420px;
+  margin: 72px auto 56px;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas: "lado barra" "lado conteudo" "lado rodape";
+  position: relative;
+  background: var(--janela);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px -24px rgba(var(--ar), .35);
+}
+
+.barra {
+  grid-area: barra;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--fio);
+}
+
+/* o semáforo mora no canto da janela, por cima da lateral, como no Mac */
+.semaforo {
+  position: absolute;
+  top: 22px;
+  left: 18px;
+  display: flex;
+  gap: 8px;
+}
+.semaforo i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ed6a5e;
+  box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .15);
+}
+.semaforo i:nth-child(2) { background: #f5bf4f; }
+.semaforo i:nth-child(3) { background: #61c554; }
+
+.voltar-pasta {
+  width: 28px;
+  height: 28px;
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.voltar-pasta:hover:not(:disabled) { background: var(--selecao); }
+.voltar-pasta:disabled { opacity: .25; cursor: default; }
+
+.titulo {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ---------- lateral ---------- */
+
+.lateral {
+  grid-area: lado;
+  padding: 52px 10px 12px;
+  background: var(--lado);
+  border-right: 1px solid var(--fio);
+  overflow-y: auto;
+}
+
+.grupo {
+  margin: 0 8px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--apagado);
+}
+
+.lateral ul { list-style: none; margin: 0; padding: 0; }
+
+.lateral a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: inherit;
+  text-decoration: none;
+}
+.lateral a:hover { background: var(--selecao); }
+.lateral a[aria-current] { background: rgba(33, 31, 28, .12); }
+.lateral img { width: 18px; height: 18px; }
+.lateral span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- ícones ---------- */
+
+.conteudo {
+  grid-area: conteudo;
+  position: relative;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.icones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 18px 8px;
+}
+
+.icones a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  color: inherit;
+  text-decoration: none;
+  outline: none;
+}
+
+.icones img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+/* o logo gravado na pasta, como a pasta personalizada do Mac: azul mais
+   escuro que a pasta, com um fio de luz embaixo pra parecer afundado */
+.icones a { position: relative; }
+.selo {
+  position: absolute;
+  top: calc(6px + 80px * .40);
+  left: 50%;
+  width: 46px;
+  height: 28px;
+  translate: -50% 0;
+  background: #3f8fcf;
+  -webkit-mask: var(--logo) center / contain no-repeat;
+          mask: var(--logo) center / contain no-repeat;
+  filter: drop-shadow(0 .5px 0 rgba(255, 255, 255, .45));
+  pointer-events: none;
+}
+
+.icones span {
+  max-width: 100%;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+  overflow-wrap: anywhere;
+  /* nome de arquivo comprido quebra como no Finder e para na terceira linha */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+/* seleção do Finder: fundo cinza no ícone, nome em azul */
+.icones a:hover img,
+.icones a:focus-visible img { background: var(--selecao); }
+.icones a:focus-visible span { background: var(--azul); color: #fff; }
+
+/* com capa: a miniatura no lugar do ícone, com sombra fina; vídeo ganha o play */
+.icones li.miniatura img {
+  width: 104px;
+  height: 80px;
+  padding: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(var(--ar), .3));
+}
+.icones li.video a { position: relative; }
+.icones li.video a::after {
+  content: "";
+  position: absolute;
+  top: calc(6px + 40px - 13px);
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .85)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M3.5 2.2v5.6L8 5z' fill='%23211f1c'/%3E%3C/svg%3E")
+    center / 14px no-repeat;
+  box-shadow: 0 1px 3px rgba(var(--ar), .3);
+  pointer-events: none;
+}
+
+/* ---------- a mesa: impressos espalhados em vez de ícones ---------- */
+
+.icones.mesa {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 22px 26px;
+  padding: 16px 8px 40px;
+}
+.mesa li {
+  rotate: var(--giro);
+  translate: 0 var(--desvio);
+  transition: rotate .25s ease, scale .25s ease;
+}
+.mesa li:hover { rotate: 0deg; scale: 1.06; z-index: 1; position: relative; }
+.mesa a { padding: 0; }
+.mesa img {
+  width: auto;
+  height: 160px;
+  padding: 0;
+  border-radius: 2px;
+  background: none !important;
+  box-shadow: 0 1px 2px rgba(var(--ar), .18), 0 10px 22px -8px rgba(var(--ar), .35);
+}
+/* o cardápio é A3: maior que os cartões */
+.mesa li:nth-child(-n+2) img { height: 200px; }
+.mesa span { display: none; }
+.mesa a:focus-visible img { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+/* ---------- o aviso do Mac ---------- */
+
+.aviso {
+  width: min(92vw, 420px);
+  max-height: 86svh;
+  padding: 22px 20px 16px;
+  border: 0;
+  border-radius: 14px;
+  color: var(--tinta);
+  background: rgba(246, 243, 236, .96);
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .2), 0 24px 70px -12px rgba(var(--ar), .5);
+  overflow: hidden;
+  font-family: var(--fonte);
+}
+.aviso[open] { display: flex; flex-direction: column; align-items: center; }
+.aviso::backdrop { background: rgba(var(--ar), .18); }
+
+/* o ícone do aviso é a própria pasta, com o logo gravado */
+.aviso-icone { position: relative; display: block; width: 64px; height: 64px; }
+.aviso-icone img { width: 64px; height: 64px; }
+.aviso-icone .selo { top: calc(64px * .40); width: 36px; height: 22px; }
+.aviso-icone .selo[hidden] { display: none; }
+
+.aviso h2 {
+  margin: 10px 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+/* texto comprido: alinhado à esquerda pra ler, e rola dentro do aviso */
+.aviso-texto {
+  min-height: 0;
+  overflow-y: auto;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.aviso-texto p { margin: 0 0 .7em; }
+
+.aviso-botoes {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+}
+.aviso-botoes button {
+  flex: 1;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  background: rgba(33, 31, 28, .08);
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.aviso-botoes button:hover { background: rgba(33, 31, 28, .13); }
+.aviso-botoes .padrao { color: #fff; background: var(--azul); }
+.aviso-botoes .padrao:hover { background: #2a62c0; }
+.aviso-botoes button:focus-visible { outline: 3px solid rgba(47, 111, 214, .45); outline-offset: 1px; }
+
+/* ---------- visualização rápida ---------- */
+
+.olhada {
+  max-width: min(92vw, 1100px);
+  max-height: 92svh;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--janela);
+  box-shadow: 0 30px 80px -20px rgba(var(--ar), .5);
+  overflow: hidden;
+}
+.olhada::backdrop { background: rgba(var(--ar), .35); }
+.olhada header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--fio);
+  font-size: 13px;
+  font-weight: 600;
+}
+.olhada header p { margin: 0; }
+.fechar-olhada {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  font-size: 11px;
+  line-height: 14px;
+  color: transparent;
+  background: #ed6a5e;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.fechar-olhada:hover { color: rgba(0, 0, 0, .55); }
+.olhada video {
+  display: block;
+  width: min(88vw, 1000px);
+  max-height: calc(92svh - 40px);
+  background: #000;
+}
+.olhada [hidden] { display: none; }
+
+.olhada img {
+  display: block;
+  /* em vw e não em %: o diálogo se ajusta à imagem, e % dele daria zero */
+  max-width: min(88vw, 1000px);
+  max-height: calc(92svh - 40px);
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.vazia {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font-size: 14px;
+  color: var(--apagado);
+}
+.vazia[hidden] { display: none; }
+
+.rodape {
+  grid-area: rodape;
+  padding: 6px 18px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--apagado);
+  border-top: 1px solid var(--fio);
+}
+
+/* ---------- celular: o app Arquivos do iPhone ---------- */
+
+@media (max-width: 760px) {
+  .finder {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100svh - 56px);
+    margin: 56px 0 0;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .lateral, .semaforo { display: none; }
+
+  .barra { padding: 14px 12px; }
+  .titulo { font-size: 17px; }
+
+  .conteudo { flex: 1; padding: 16px 12px; }
+  .icones { grid-template-columns: repeat(3, 1fr); gap: 16px 4px; }
+  .icones img { width: 72px; height: 72px; }
+  .selo { top: calc(6px + 72px * .40); width: 41px; height: 25px; }
+  .icones.mesa { gap: 14px 12px; }
+  .mesa img { height: 120px; }
+  .mesa li:nth-child(-n+2) img { height: 150px; }
+}
