@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>como funciona · até aí tudo bem</title>
+<meta name="description" content="o que acontece com a conversa, do print ao fim do prazo, e o que fica guardado.">
+<link rel="icon" href="img/icone-64.png">
+<link rel="apple-touch-icon" href="img/icone-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Courier+Prime&family=Instrument+Serif&family=Inter:wght@400;600&display=swap">
+<link rel="stylesheet" href="estilo.css?v=1792554794">
+</head>
+<body>
+
+<header class="topo-site">
+  <div class="barra">
+    <a class="marca" href="./">até aí tudo bem</a>
+    <nav><a href="./#montar">dar entrada na conversa</a><a href="https://github.com/fefevillaca/ateaitudobem" rel="noopener">código aberto</a></nav>
+  </div>
+  <svg class="linha-mao" viewBox="0 0 1000 10" preserveAspectRatio="none" aria-hidden="true"><path d="M2 5.5 C 140 4.2, 260 6.6, 410 5.1 S 690 6.2, 830 4.6 S 950 5.8, 998 5.2" stroke="currentColor" stroke-width="1.3" fill="none" vector-effect="non-scaling-stroke"/></svg>
+</header>
+
+<main class="texto-longo">
+  <article class="ficha">
+    <img class="fita" src="img/fita.svg" alt="">
+    <div class="cabecalho"><h2>como funciona</h2><span>até aí tudo bem</span></div>
+    <img class="progresso" src="img/progresso-5.svg" alt="" style="margin-top:26px">
+
+    <h1>como funciona e o que fica guardado</h1>
+    <p>toda conversa tem alguém do outro lado que não escolheu estar aqui. por isso tudo aqui tem chave e prazo. esta página conta o que acontece com a conversa, do print ao fim do prazo.</p>
+
+    <h2>o caminho de uma conversa</h2>
+    <ol>
+      <li>você sobe os prints, o vídeo da tela ou o texto exportado. a leitura dos prints e do vídeo acontece no seu navegador, então as imagens ficam no seu aparelho.</li>
+      <li>seu navegador sorteia uma chave e tranca a conversa com ela, usando <code>AES-GCM</code> de 256 bits.</li>
+      <li>pro site sobe só o bloco trancado. a chave vai dentro do link, na parte depois do #, que os navegadores guardam pra si e nunca mandam pra servidor nenhum.</li>
+      <li>quem abre o link destranca a conversa no próprio celular, com a chave que veio junto.</li>
+      <li>os comentários e os áudios do grupo são trancados com a mesma chave antes de sair do aparelho de quem comentou.</li>
+      <li>no fim do prazo, o banco de dados apaga sozinho o bloco e os comentários. o link para de abrir.</li>
+    </ol>
+
+    <h2>o que fica guardado</h2>
+    <table>
+      <tr><th>o quê</th><th>onde</th><th>até quando</th></tr>
+      <tr><td>prints, vídeo e arquivo exportado</td><td>só no seu aparelho</td><td>nunca saem dele</td></tr>
+      <tr><td>a conversa, trancada</td><td>no banco de dados do site</td><td>o prazo que você escolheu, de 1 hora a 7 dias</td></tr>
+      <tr><td>comentários e áudios, trancados</td><td>no banco de dados do site</td><td>somem junto com a conversa</td></tr>
+      <tr><td>a chave</td><td>só no link</td><td>enquanto alguém tiver o link</td></tr>
+      <tr><td>seu nome no grupo</td><td>no seu navegador e dentro dos comentários trancados</td><td>até você limpar o navegador</td></tr>
+    </table>
+    <p>quem cria o link recebe também um link com senha, igual ao outro e com uma senha a mais no fim. com ele dá pra apagar a conversa e os comentários na hora, pelo menu ⋮ do celular.</p>
+
+    <h2>o que a gente vê</h2>
+    <p>sem a chave, o bloco guardado é um amontoado de letras sem sentido e a chave nunca passa pelo site. a gente sabe que existe uma conversa trancada, de que tamanho ela é e quando ela vence. quem ela envolve e o que ela diz, ninguém do lado de cá tem como saber.</p>
+    <p>também ficam de fora conta, login, anúncio, cookie de rastreamento e medição de visita. a hospedagem, como a de qualquer site, registra por pouco tempo o endereço de quem acessa. esse registro não tem como conter a conversa, porque ela só viaja trancada.</p>
+    <p>na primeira leitura de prints, o navegador baixa o leitor de texto (o tesseract) do jsdelivr, um serviço público de arquivos. ele chega até você e trabalha aí, sem mandar nada de volta.</p>
+
+    <h2>quem pode ler</h2>
+    <p>qualquer pessoa com o link inteiro, porque o link é a chave. manda só pra quem precisa ver, escolhe o menor prazo que der conta e apaga com o link com senha quando a conversa já tiver servido.</p>
+    <p>a ferramenta existe pra você pedir a opinião de quem você confia sobre o que está vivendo. o prazo máximo de 7 dias foi escolhido por isso.</p>
+
+    <h2>código aberto</h2>
+    <p>o código inteiro do site é aberto, sob a licença <code>MIT</code>. qualquer pessoa pode ler, conferir que a chave só existe no link e rodar uma cópia própria. ele está em <a href="https://github.com/fefevillaca/ateaitudobem" rel="noopener">github.com/fefevillaca/ateaitudobem</a>. as partes que importam pra segurança são três arquivos curtos: <code>public/js/cripto.js</code>, que tranca e destranca, <code>api/conversas.js</code>, que guarda com prazo, e <code>api/comentarios.js</code>, que guarda os comentários com o mesmo prazo.</p>
+
+    <h2 id="exportar">como exportar do whatsapp</h2>
+    <p>o passo a passo de cada jeito, com as telas do iphone e do android, está em <a href="como-exportar">como tirar a conversa do whatsapp</a>.</p>
+
+    <div class="botoes" style="margin-top:34px"><a class="botao" href="./#montar">dar entrada na conversa</a></div>
+    <div class="rodape-ficha"><i class="codigo-barras"></i><span>via única · fica só com você</span></div>
+  </article>
+</main>
+</body>
+</html>

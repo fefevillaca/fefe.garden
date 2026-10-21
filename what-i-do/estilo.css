@@ -1,0 +1,194 @@
+/* what i do? — o CV, na diagramação do Canva ("Fefê Villaça CV (EN)")
+ *
+ * O que vem do Canva: nome em caixa alta bem espaçado, cargo e rótulos de
+ * seção em mono espaçada, um fio grosso abrindo cada bloco,
+ * cargo | período em negrito com a empresa embaixo, e skills/languages lado a
+ * lado no fim. O fundo e o "← back" seguem a who-am-i, pra página parecer do
+ * mesmo site e não um PDF colado.
+ *
+ * Tokens PLACEHOLDER, como no resto: quando o branding chegar, troca junto.
+ */
+
+:root {
+  --tom:    rgb(226, 217, 200);   /* o pão de queijo, de dados.js */
+  --creme:  #efece4;
+  --borda:  #ded9cd;
+  --tinta:  #211f1c;
+
+  --fonte-nome:  'League Spartan', system-ui, sans-serif;
+  --fonte-corpo: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fonte-rotulo: 'Space Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  color: var(--tinta);
+  font-family: var(--fonte-corpo);
+  background:
+    radial-gradient(ellipse 130% 100% at 50% 0%,
+      var(--tom) 0%, var(--creme) 45%, var(--borda) 100%) fixed;
+  background-color: var(--creme);
+}
+
+a { color: inherit; }
+
+.voltar {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1;
+  font-size: 14px;
+  letter-spacing: .02em;
+  text-decoration: none;
+  opacity: .58;
+  transition: opacity .2s;
+}
+.voltar:hover, .voltar:focus-visible { opacity: 1; }
+
+.cv {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 88px 24px 96px;
+  font-size: clamp(14px, 1.1vw, 15.5px);
+  line-height: 1.6;
+}
+
+/* ── topo: nome + cargo à esquerda, contato à direita ── */
+
+.topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px 40px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.topo h1 {
+  font-family: var(--fonte-nome);
+  font-weight: 600;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  margin: 0 0 .55em;
+}
+
+.cargo,
+.bloco h2 {
+  font-family: var(--fonte-rotulo);
+  font-size: 12.5px;
+  font-weight: 400;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.topo address {
+  font-style: normal;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.topo address a { text-decoration: none; }
+.topo address a:hover { text-decoration: underline; }
+
+/* ── blocos: o fio grosso do Canva abre cada um ── */
+
+.bloco {
+  border-top: 2px solid var(--tinta);
+  padding-top: 18px;
+  margin-top: 36px;
+}
+
+.bloco h2 { margin-bottom: 22px; }
+
+.bloco p { margin: 0 0 1em; max-width: 68ch; }
+
+.item { margin-bottom: 30px; }
+.item:last-child { margin-bottom: 0; }
+
+.item h3,
+.formacao strong {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 0;
+}
+
+.item .onde { margin: .5em 0 .9em; }
+
+.formacao,
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.formacao li { margin-bottom: 18px; }
+
+/* comunicação institucional: um tópico por trabalho, a experiência inteira nele */
+.topicos {
+  margin: 1.4em 0 0;
+  padding-left: 1.1em;
+  max-width: 68ch;
+}
+.topicos li { margin-bottom: 14px; padding-left: .2em; }
+.topicos strong { font-weight: 600; }
+.formacao strong { display: block; }
+
+/* skills e languages lado a lado, como no rodapé do CV */
+.duas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+@media (max-width: 600px) {
+  .cv { padding: 64px 16px 64px; }
+  .duas { grid-template-columns: 1fr; }
+  .topo h1 { letter-spacing: .1em; }
+}
+
+/* ── comunicação institucional: um botão abaixo do contato abre a seção ──
+   O trabalho fica no topo da página; a frente institucional é um anexo que
+   a pessoa escolhe abrir. */
+
+.contato {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.abre-inst {
+  font-family: var(--fonte-rotulo);
+  font-size: 11.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--tinta);
+  background: transparent;
+  border: 1.5px solid var(--tinta);
+  border-radius: 999px;
+  padding: 8px 14px 7px;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.abre-inst::after { content: " +"; }
+.abre-inst[aria-expanded="true"]::after { content: " −"; }
+.abre-inst:hover,
+.abre-inst:focus-visible,
+.abre-inst[aria-expanded="true"] {
+  background: var(--tinta);
+  color: var(--creme);
+}
+
+.painel { scroll-margin-top: 24px; }
+
+/* o about em itálico, como no CV do Canva */
+.sobre p { font-style: italic; }
+
+/* tools: ferramenta em negrito e o que ela faz com ela na mesma linha */
+.ferramentas li { margin-bottom: 6px; }
+.ferramentas strong { font-weight: 600; }
