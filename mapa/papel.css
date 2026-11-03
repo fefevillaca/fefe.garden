@@ -1,0 +1,167 @@
+/* papel — a matéria da folha.
+ *
+ * Fica numa camada própria, POR CIMA das duas peles (a tinta e a cor) e por
+ * baixo dos pins. Três motivos pra ser assim, e não assada dentro do SVG:
+ *
+ * 1. A luneta recorta a cor num círculo. Se o papel estivesse dentro das duas
+ *    peles, ele renderizaria duas vezes e a borda do círculo seria uma emenda
+ *    de textura. Por cima, o papel atravessa a luneta inteiro — que é o certo:
+ *    a luneta olha ATRAVÉS do papel, e papel não muda porque você olhou.
+ * 2. Uma renderização em vez de duas.
+ * 3. Dá pra regular ao vivo, que é como se decide isto.
+ *
+ * O peso é `--papel`, de 0 a 1, trocado pelos botões da barra. A lei do
+ * `capa.md` continua valendo ao contrário: lá o fundo era o silêncio porque a
+ * peça já era textura. Aqui a folha É a peça, então a matéria é dela — mas
+ * pouca, senão come o desenho.
+ */
+
+/* A `.materia` NÃO pode ter `opacity`, e essa é a armadilha que custou uma ida
+ * e volta. `opacity < 1` cria um grupo isolado: as camadas de `multiply` param
+ * de multiplicar contra o MAPA e passam a multiplicar contra o vazio do grupo,
+ * e aí o grupo inteiro é aplicado por cima com blend normal — ou seja, um véu
+ * cinza-claro sobre tudo. O sintoma era a Avenida do Contorno, preta sem papel,
+ * virando cinza médio com papel.
+ *
+ * O peso, então, entra na opacidade de CADA camada, não no grupo. */
+.materia {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.materia > * { position: absolute; inset: 0; }
+
+/* ── 1. a fibra ──────────────────────────────────────────────────────────
+   Ruído fino, quase todo claro, com pontinhos escuros. Multiplicado de leve:
+   é o grão do papel, não uma tela de TV. O `stitchTiles='stitch'` é o que faz
+   o ladrilho fechar sem costura — sem ele aparece uma grade de 180px. */
+.fibra {
+  background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'>\
+<filter id='f'>\
+<feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/>\
+<feColorMatrix type='saturate' values='0'/>\
+<feComponentTransfer>\
+<feFuncR type='linear' slope='0.42' intercept='0.68'/>\
+<feFuncG type='linear' slope='0.42' intercept='0.67'/>\
+<feFuncB type='linear' slope='0.42' intercept='0.65'/>\
+</feComponentTransfer>\
+</filter>\
+<rect width='180' height='180' filter='url(%23f)'/></svg>");
+  background-size: 180px 180px;
+  mix-blend-mode: multiply;
+  opacity: calc(var(--papel, 1) * 0.5);
+}
+
+/* ── 2. a nuvem ──────────────────────────────────────────────────────────
+   Papel não é uniforme: tem manchas largas, de fabricação e de umidade. É o
+   que impede o grão de parecer filtro. Frequência baixa e ladrilho grande. */
+.nuvem {
+  background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='700' height='700'>\
+<filter id='c'>\
+<feTurbulence type='fractalNoise' baseFrequency='0.006' numOctaves='3' stitchTiles='stitch'/>\
+<feColorMatrix type='saturate' values='0'/>\
+<feComponentTransfer>\
+<feFuncR type='linear' slope='0.20' intercept='0.84'/>\
+<feFuncG type='linear' slope='0.20' intercept='0.83'/>\
+<feFuncB type='linear' slope='0.21' intercept='0.80'/>\
+</feComponentTransfer>\
+</filter>\
+<rect width='700' height='700' filter='url(%23c)'/></svg>");
+  background-size: 700px 700px;
+  mix-blend-mode: multiply;
+  opacity: calc(var(--papel, 1) * 0.4);
+}
+
+/* ── 3. a foto do papel aberto ───────────────────────────────────────────
+   A peça desdobrada da família, gerada na mesma luz de estúdio das esferas:
+   `referencias/capa/papel-aberto-v2.png`, passada pelo `papel.py`.
+
+   Entrou no lugar dos vincos e do desgaste desenhados à mão, que eram um
+   substituto enquanto a foto não existia. Vinco de verdade não é um gradiente
+   simétrico: ele afina, some no meio do painel, engrossa no cruzamento e
+   carrega o amassado em volta. Isso não se escreve em CSS.
+
+   São DUAS camadas porque uma dobra tem sombra de um lado e luz do outro, e
+   `multiply` nunca clareia. A sombra pesa mais que a luz de propósito — é o
+   que mantém de pé a lei de que a matéria não lava a tinta. */
+.fotoSombra {
+  background-image: url("papel-sombra.webp");
+  background-size: 100% 100%;
+  mix-blend-mode: multiply;
+  opacity: calc(var(--papel, 1) * 0.92);
+}
+.fotoLuz {
+  background-image: url("papel-luz.webp");
+  background-size: 100% 100%;
+  mix-blend-mode: screen;
+  opacity: calc(var(--papel, 1) * 0.62);
+}
+
+/* ── 4. o desgaste ───────────────────────────────────────────────────────
+   Tinta de mapa dobrado não some por igual: ela racha e descasca, primeiro na
+   quina do vinco e depois em pontinhos por toda a folha.
+
+   O truque é pintar **na cor do papel**, por cima de tudo, com blend normal.
+   Onde tem tinta, ela apaga; onde já é papel, papel sobre papel não muda nada —
+   então a camada é invisível no vazio e só trabalha onde há desenho. É por isso
+   que não precisa de máscara nem de separar a impressão do fundo.
+
+   O ruído dirige o ALFA, não a cor: a matriz joga o canal vermelho da
+   turbulência na transparência com um degrau de −0,62, e sobra só a ponta clara
+   do ruído. Daí a chuva esparsa em vez de um véu. */
+.desgaste {
+  background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'>\
+<filter id='d'>\
+<feTurbulence type='fractalNoise' baseFrequency='0.42' numOctaves='4' stitchTiles='stitch'/>\
+<feColorMatrix type='matrix' values='0 0 0 0 0.972 0 0 0 0 0.953 0 0 0 0 0.906 1 0 0 0 -0.62'/>\
+</filter>\
+<rect width='300' height='300' filter='url(%23d)'/></svg>");
+  background-size: 300px 300px;
+  opacity: calc(var(--papel, 1) * var(--desgaste, 1) * 0.85);
+}
+
+/* a mesma cor de papel, mas guiada pelo vinco da FOTO: é onde a tinta racha
+   primeiro, e é o que amarra o desgaste à dobra em vez de espalhar por acaso */
+.desgasteVinco {
+  background-color: #f8f3e7;
+  -webkit-mask-image: url("papel-luz.webp");
+  mask-image: url("papel-luz.webp");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  opacity: calc(var(--papel, 1) * var(--desgaste, 1) * 0.7);
+}
+
+/* ── 5. a luz do estúdio ─────────────────────────────────────────────────
+   A mesma da capa: mais clara em cima do meio, fechando nas bordas. É de onde
+   as peças da família vieram, e é o que faz a folha ler como fotografada em
+   vez de exportada. */
+.luz {
+  background: radial-gradient(ellipse 80% 64% at 50% 38%,
+    rgba(255, 255, 255, 0) 0%, rgba(84, 74, 56, 0.05) 58%,
+    rgba(84, 74, 56, 0.13) 86%, rgba(84, 74, 56, 0.22) 100%);
+  mix-blend-mode: multiply;
+  opacity: calc(var(--papel, 1) * 0.9 + 0.1);   /* a luz do estúdio nunca zera */
+}
+/* NÃO existe camada de brilho global, e isso é uma decisão.
+ *
+ * A primeira versão tinha um `soft-light` branco no meio da folha, pra "acender"
+ * o papel. Ele acendeu o papel e acendeu a tinta junto: a Avenida do Contorno,
+ * que é preta sem papel, virava cinza médio com papel. Não dava pra ver de
+ * relance — só comparando com o botão `sem papel` lado a lado.
+ *
+ * A regra que sobrou: **a matéria só multiplica.** Multiply nunca clareia, então
+ * o desenho atravessa a matéria intacto. O que pode clarear é local e tem
+ * motivo físico: a quina do vinco, que pega luz de verdade, e o desgaste no
+ * cruzamento das dobras, onde o papel realmente esfregou. Luz global, não. */
+
+/* ── 6. a borda ──────────────────────────────────────────────────────────
+   O papel tem espessura, e espessura pega luz. Aqui mora o precipício. */
+.corte {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 253, 244, 0.5),
+    inset 0 0 2px 1px rgba(33, 31, 28, 0.16),
+    inset 0 0 60px rgba(84, 74, 56, 0.06);
+}
